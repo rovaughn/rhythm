@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf8">
+    <title>Rhythm</title>
+    <style>
+      body {
+        background-color: #020717;
+        color: white;
+        padding: 0px;
+      }
+      
+      .centered {
+        width: 480px;
+        margin: auto;
+      }
+      
+      canvas {
+        image-rendering: optimizeSpeed;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: -o-crisp-edges;
+        image-rendering: optimize-contrast;
+        -ms-interpolation-mode: nearest-neighbor;
+        width: 720px;
+        height: 480px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="centered">
+      <canvas width="240" height="160" id="canvas"></canvas>
+    </div>
+    <script src="async.js"></script>
+    <script src="imagelib.js"></script>
+    <script>
+      var NORTH     = 0, // y=1, x=0
+          NORTHEAST = 1, // y=1, x=9
+          EAST      = 2, // y=1, x=3
+          SOUTHEAST = 3, // y=0, x=9
+          SOUTH     = 4, // y=0, x=0
+          SOUTHWEST = 5, // y=0, x=6
+          WEST      = 6, // y=0, x=3
+          NORTHWEST = 7; // y=1, x=6
+      
+      var UPKEY    = 87, // W
+          RIGHTKEY = 68, // D
+          DOWNKEY  = 83, // S
+          LEFTKEY  = 65; // A
+      
+      function main () {
+        var canvas = document.getElementById('canvas'),
+            cx     = canvas.getContext('2d');
+        
+        async.parallel({
+          jack:   function(done){ loadImage('JackWalking.png', done); },
+          shadow: function(done){ loadImage('shadow.png', done); },
+        }, function(err, sprites){
+          if (err) alert(err);
+          
+          sprites.jack = makeTransparent(sprites.jack, 0x4cff00);
+          sprites.jack = makeTransparent(sprites.jack, 0xff00ff);
+          sprites.shadow = makeTransparent(sprites.shadow, 0x000000, 0xaa);
+          sprites.shadow = makeTransparent(sprites.shadow, 0xff00ff);
+          
+          var frame = 0,
+              dir   = SOUTH,
+              x     = 0,
+              y     = 0;
+          
+          //            N  NE   E  SE   S  SW   W  NW
+          var offxs = [ 0,  9,  3,  9,  0,  6,  3,  6],
+              offys = [ 1,  1,  1,  0,  0,  0,  0,  1];
+          
+          var spritew = 16,
+              spriteh = 29;
+          
+          function drawFrame () {
+            cx.fillStyle = 'forestgreen';
+            cx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            var offx = spritew*(offxs[dir] + ((frame == 3) ? 1 : frame)),
+                offy = spriteh*offys[dir];
+            
+            cx.drawImage(sprites.shadow, x+1, y + 21);
+            cx.drawImage(sprites.jack, offx, offy, spritew, spriteh, x, y, spritew, spriteh);
+          }
+          
+          var dn = false, de = false, ds = false, dw = false;
+          
+          document.onkeydown = function(e){
+            if (e.which == UPKEY   ) dn = true;
+            if (e.which == RIGHTKEY) de = true;
+            if (e.which == DOWNKEY ) ds = true;
+            if (e.which == LEFTKEY ) dw = true;
+          };
+          
+          document.onkeyup = function(e){
+            if (e.which == UPKEY   ) dn = false;
+            if (e.which == RIGHTKEY) de = false;
+            if (e.which == DOWNKEY ) ds = false;
+            if (e.which == LEFTKEY ) dw = false;
+          };
+          
+          var step = 0,
+              wa   = 11;
+          
+          drawFrame();
+          
+          setInterval(function(){
+            /*if (de) { x += 1+0.2*Math.cos(wa-Math.PI/wa*step); }
+            if (dw) { x -= 1+0.2*Math.cos(wa-Math.PI/wa*step); }
+            if (ds) { y += 1+0.2*Math.cos(wa-Math.PI/wa*step); }
+            if (dn) { y -= 1+0.2*Math.cos(wa-Math.PI/wa*step); }*/
+            
+            if (de) { x += 1; }
+            if (dw) { x -= 1; }
+            if (ds) { y += 1; }
+            if (dn) { y -= 1; }
+            
+            if (de || dw || ds || dn) { step += 1 }
+            else                      { step = 1*wa; }
+            
+            
+                 if (step < 1*wa) { frame = 0; }
+            else if (step < 2*wa) { frame = 1; }
+            else if (step < 3*wa) { frame = 2; }
+            else if (step < 4*wa) { frame = 1; }
+               else               { step = 0; frame = 0; }
+            
+            drawFrame();
+          }, 1000/60);
+          
+          setInterval(function(){
+                 if (dn && de) { dir = NORTHEAST; }
+            else if (dn && dw) { dir = NORTHWEST; }
+            else if (ds && de) { dir = SOUTHEAST; }
+            else if (ds && dw) { dir = SOUTHWEST; }
+            else if (dn      ) { dir = NORTH;     }
+            else if (de      ) { dir = EAST;      }
+            else if (ds      ) { dir = SOUTH;     }
+            else if (dw      ) { dir = WEST;      }
+          }, 1000/10);
+        });
+      }
+      
+      main();
+    </script>
+  </body>
+</html>
